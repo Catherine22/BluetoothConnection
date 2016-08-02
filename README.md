@@ -5,7 +5,7 @@ In [DeviceListActivity]
 
  - device.getBluetoothClass().getMajorDeviceClass()     
 Get the Major to tell you what the device is.       
-*Here is [Device.Major] definds all devices'major*
+*Here is [Device.Major] definds all devices*
  - BluetoothVendor        
 Find MAC Address Vendors to connect to an Android phone.        
 *Refer to http://www.macvendors.com/*
