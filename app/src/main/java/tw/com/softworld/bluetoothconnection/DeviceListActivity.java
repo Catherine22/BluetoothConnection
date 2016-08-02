@@ -24,6 +24,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
@@ -33,6 +35,7 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import java.util.HashMap;
 import java.util.Set;
 
 /**
@@ -42,7 +45,6 @@ import java.util.Set;
  * Activity in the result Intent.
  */
 public class DeviceListActivity extends Activity {
-
     /**
      * Tag for Log
      */
@@ -62,6 +64,11 @@ public class DeviceListActivity extends Activity {
      * Newly discovered devices
      */
     private ArrayAdapter<String> mNewDevicesArrayAdapter;
+
+    /**
+     * Restrict devices to connect
+     */
+    private final boolean ANDROID_ONLY = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -117,6 +124,7 @@ public class DeviceListActivity extends Activity {
         if (pairedDevices.size() > 0) {
             findViewById(R.id.title_paired_devices).setVisibility(View.VISIBLE);
             for (BluetoothDevice device : pairedDevices) {
+                Log.d(TAG, device.getName() + "\n" + device.getAddress() + "\n" + "DeviceType:" + device.getBluetoothClass().getMajorDeviceClass());
                 pairedDevicesArrayAdapter.add(device.getName() + "\n" + device.getAddress());
             }
         } else {
@@ -186,14 +194,14 @@ public class DeviceListActivity extends Activity {
     public String deviceTypeTyString(int paramInt) {
         switch (paramInt) {
             default:
-                return "UNKNOWN";
+                return "Unknown";
             case 1:
-                return "CLASSIC";
-            case 3:
-                return "CLASSIC and BLE";
+                return "Classic - BR/EDR devices";
             case 2:
+                return "Low Energy - LE-only";
+            case 3:
+                return "Dual Mode - BR/EDR/LE";
         }
-        return "BLE only";
     }
 
 
@@ -210,15 +218,20 @@ public class DeviceListActivity extends Activity {
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 // Get the BluetoothDevice object from the Intent
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                int type = device.getType();
-                Log.d(TAG, "ACTION_FOUND device:" + device.getAddress() + " BondState:" + device.getBondState() + " " + deviceTypeTyString(type));
+                int type = -1;
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN_MR2)
+                    type = device.getType();
+                Log.d(TAG, "ACTION_FOUND device:" + device.getAddress() + " BondState:" + device.getBondState() + " " + deviceTypeTyString(type)+ " " + "DeviceType:" + device.getBluetoothClass().getMajorDeviceClass());
 
                 //BOND_BONDING:They're pairing
                 //BOND_BONDED:They've paired
                 //BOND_NONE:They stop pairing
                 // If it's already paired, skip it, because it's been listed already
                 if (device.getBondState() != BluetoothDevice.BOND_BONDED) {
-                    mNewDevicesArrayAdapter.add(device.getName() + "\n" + device.getAddress());
+                    if (ANDROID_ONLY) {
+                        BluetoothVendor.getVendor(device.getName(), device.getAddress(), mHandler);
+                    } else
+                        mNewDevicesArrayAdapter.add(device.getName() + "\n" + device.getAddress());
                 }
                 // When discovery is finished, change the Activity title
             } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
@@ -232,4 +245,32 @@ public class DeviceListActivity extends Activity {
         }
     };
 
+    private final Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            Log.d(TAG, "handleMessage");
+            switch (msg.what) {
+                case Constants.SUCCESS:
+                    Log.e(TAG, "Constants.SUCCESS");
+                    Bundle bundle = msg.getData();
+                    HashMap<String, String> myData = (HashMap<String, String>) bundle.getSerializable("MSG");
+                    String name = myData.get("NAME").toString();
+                    String vendor = myData.get("VENDOR").toString();
+                    String macAddress = myData.get("MAC_ADDRESS").toString();
+                    if (!vendor.equals("APPLE, INC."))
+                        mNewDevicesArrayAdapter.add(name + "\n" + macAddress);
+                    Log.d(TAG, name + "\n" + macAddress + "\n" + vendor);
+                    break;
+                case Constants.FAILURE:
+                    Log.e(TAG, "Constants.FAILURE");
+                    //Fail to get vendor
+                    Bundle bundle2 = msg.getData();
+                    HashMap<String, String> myData2 = (HashMap<String, String>) bundle2.getSerializable("MSG");
+                    String name2 = myData2.get("NAME").toString();
+                    String macAddress2 = myData2.get("MAC_ADDRESS").toString();
+                    mNewDevicesArrayAdapter.add(name2 + "\n" + macAddress2);
+                    break;
+            }
+        }
+    };
 }

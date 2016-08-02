@@ -4,6 +4,15 @@ android {
     compileSdkVersion 23
     buildToolsVersion "23.0.3"
 
+    signingConfigs {
+        config {
+            keyAlias 'SoftIntAppDev000'
+            keyPassword '81231585xsw2ZAQ!'
+            storeFile file('/Users/Nexton/Dropbox/Keystores/KeyStore - FreeMyCard/KeyStore')
+            storePassword '243294761qaz@WSX'
+        }
+    }
+
     defaultConfig {
         applicationId "tw.com.softworld.bluetoothconnection"
         minSdkVersion 13

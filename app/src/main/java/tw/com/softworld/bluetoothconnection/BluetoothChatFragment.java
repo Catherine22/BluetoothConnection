@@ -18,8 +18,10 @@ package tw.com.softworld.bluetoothconnection;
 
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -40,6 +42,8 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.HashMap;
+
 /**
  * This fragment controls Bluetooth to communicate with other devices.
  */
@@ -49,7 +53,6 @@ public class BluetoothChatFragment extends Fragment {
 
     // Intent request codes
     private static final int REQUEST_CONNECT_DEVICE_SECURE = 1;
-    private static final int REQUEST_CONNECT_DEVICE_INSECURE = 2;
     private static final int REQUEST_ENABLE_BT = 3;
     private static final int REQUEST_DISCOVERABLE = 4;
 
@@ -321,7 +324,13 @@ public class BluetoothChatFragment extends Fragment {
                                 + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
                     }
                     break;
-                case Constants.MESSAGE_TOAST:
+                case Constants.MESSAGE_CONNECTION_FAILED:
+                    if (null != activity) {
+                        Toast.makeText(activity, msg.getData().getString(Constants.TOAST),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                    break;
+                case Constants.MESSAGE_CONNECTION_LOST:
                     if (null != activity) {
                         Toast.makeText(activity, msg.getData().getString(Constants.TOAST),
                                 Toast.LENGTH_SHORT).show();
@@ -338,12 +347,6 @@ public class BluetoothChatFragment extends Fragment {
                 // When DeviceListActivity returns with a device to connect
                 if (resultCode == Activity.RESULT_OK) {
                     connectDevice(data, true);
-                }
-                break;
-            case REQUEST_CONNECT_DEVICE_INSECURE:
-                // When DeviceListActivity returns with a device to connect
-                if (resultCode == Activity.RESULT_OK) {
-                    connectDevice(data, false);
                 }
                 break;
             case REQUEST_ENABLE_BT:
